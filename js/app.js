@@ -4,8 +4,9 @@
 
 var pendingDeleteId = null;
 
-// 确定按钮折叠：{ fundId: { stockName: true } }
-var fundFoldedStocks = {};
+// 全局联动筛选：在一只基金中勾选 → 所有基金联动
+var filterFocusStocks = {};  // { stockName: true }
+var filterActive = false;
 
 function initApp() {
   renderAll();
@@ -23,13 +24,21 @@ function bindEvents() {
   if (si) si.addEventListener('input', function () { renderAll(); });
 
   var fc = $('.filter-checkbox');
-  if (fc) fc.addEventListener('change', function () { renderAll(); });
+  if (fc) fc.addEventListener('change', function () {
+    manualCollapse = {};
+    filterFocusStocks = {};
+    filterActive = false;
+    renderAll();
+  });
 
   var addBtn = $('#btn-add-fund');
   if (addBtn) addBtn.addEventListener('click', showAddModal);
 
   var grid = $('.fund-grid');
-  if (grid) grid.addEventListener('click', handleCardClick);
+  if (grid) {
+    grid.addEventListener('click', handleCardClick);
+    grid.addEventListener('dblclick', handleCardClick);
+  }
 
   document.addEventListener('click', handleGlobalClick);
   document.addEventListener('keydown', function (e) {
@@ -92,18 +101,67 @@ function handleCardClick(e) {
     return;
   }
 
-  // 点击折叠的股票行 → 展开
+  // 双击股票名 → 编辑
+  if (e.target.closest('.stock-name') && e.type === 'dblclick') {
+    var nameSpan = e.target.closest('.stock-name');
+    startEditStockName(nameSpan, fundId, card);
+    return;
+  }
+
+  // 点击折叠的股票行 → 展开（加入焦点）
   if (e.target.closest('.stock-item.stock-folded')) {
     var item = e.target.closest('.stock-item.stock-folded');
     var cb = item.querySelector('.stock-check');
     var stockName = cb ? cb.getAttribute('data-stock') : null;
-    if (stockName && fundFoldedStocks[fundId]) {
-      delete fundFoldedStocks[fundId][stockName];
-      if (Object.keys(fundFoldedStocks[fundId]).length === 0) delete fundFoldedStocks[fundId];
+    if (stockName && filterActive) {
+      filterFocusStocks[stockName] = true;
       renderAll();
     }
     return;
   }
+}
+
+// ==========================================
+//  股票名称编辑
+// ==========================================
+
+function startEditStockName(nameSpan, fundId, card) {
+  var original = nameSpan.getAttribute('data-original');
+
+  // 创建输入框替换
+  var input = document.createElement('input');
+  input.type = 'text';
+  input.className = 'stock-edit-input';
+  input.value = original;
+  input.style.cssText = 'font-size:14px;padding:2px 6px;border:1px solid var(--primary);border-radius:4px;width:80%;font-family:inherit;';
+
+  nameSpan.replaceWith(input);
+  input.focus();
+  input.select();
+
+  var save = function () {
+    var newName = input.value.trim();
+    if (newName && newName !== original) {
+      // 更新数据
+      var funds = getFunds();
+      var fund = funds.find(function (f) { return f.id === fundId; });
+      if (fund) {
+        var idx = fund.stocks.indexOf(original);
+        if (idx !== -1) fund.stocks[idx] = newName;
+        saveFunds(funds);
+      }
+    }
+    renderAll();
+  };
+
+  input.addEventListener('blur', save);
+  input.addEventListener('keydown', function (ev) {
+    if (ev.key === 'Enter') { input.blur(); }
+    if (ev.key === 'Escape') {
+      input.removeEventListener('blur', save);
+      renderAll();
+    }
+  });
 }
 
 // ==========================================
@@ -112,19 +170,26 @@ function handleCardClick(e) {
 
 function handleConfirm(fundId, card) {
   var cbs = card.querySelectorAll('.stock-check');
-  var folded = {};
+  var focus = {};
+  var total = cbs.length;
 
   for (var i = 0; i < cbs.length; i++) {
     var cb = cbs[i];
     var sn = cb.getAttribute('data-stock');
-    if (sn && !cb.checked) folded[sn] = true;
+    if (sn && cb.checked) focus[sn] = true;
   }
 
-  if (Object.keys(folded).length > 0) {
-    fundFoldedStocks[fundId] = folded;
-  } else {
-    delete fundFoldedStocks[fundId];
+  filterFocusStocks = focus;
+  filterActive = true;
+
+  // 重置所有基金的下拉展开状态
+  var funds = getFunds();
+  for (var j = 0; j < funds.length; j++) {
+    if (funds[j].showAll) {
+      funds[j].showAll = false;
+    }
   }
+  saveFunds(funds);
 
   renderAll();
 }

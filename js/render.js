@@ -33,11 +33,6 @@ function renderAll() {
   var fc = $('.filter-checkbox');
   if (fc) filterOn = fc.checked;
 
-  // 清除手动标记（筛选关闭时）
-  if (!filterOn) {
-    manualCollapse = {};
-    fundFoldedStocks = {};
-  }
 
   // 颜色映射
   var colorMap = buildColorMap(funds);
@@ -70,8 +65,19 @@ function renderAll() {
 
 function renderCard(fund, colorMap, hlSet, filterOn, sharedStocks) {
   var collapsed = fund.collapsed;
-  // 筛选模式：0共同持仓自动折叠（手动操作除外）
-  if (filterOn && !manualCollapse[fund.id]) {
+
+  // 全局联动筛选：0焦点股票 → 折叠
+  if (filterActive && !manualCollapse[fund.id]) {
+    var hasFocus = false;
+    for (var fi = 0; fi < fund.stocks.length; fi++) {
+      if (filterFocusStocks[fund.stocks[fi]]) { hasFocus = true; break; }
+    }
+    if (!hasFocus) collapsed = true;
+    else collapsed = false;
+  }
+
+  // 共同持仓筛选：0共同持仓 → 折叠（全局筛选未生效时）
+  if (!filterActive && filterOn && !manualCollapse[fund.id]) {
     var hasShared = false;
     for (var i = 0; i < fund.stocks.length; i++) {
       if (inArray(sharedStocks, fund.stocks[i])) { hasShared = true; break; }
@@ -123,34 +129,37 @@ function renderStockBody(fund, colorMap, hlSet, filterOn, sharedStocks) {
   var wrapper = createElement('div', { className: 'stock-list-wrapper' });
   var ol = createElement('ol', { className: 'stock-list' });
 
-  var uniqueCount = 0;
+  var hiddenCount = 0; // 独有 + 确定折叠
 
   for (var i = 0; i < fund.stocks.length; i++) {
     var stock = fund.stocks[i];
     var color = (colorMap && colorMap[stock]) ? colorMap[stock] : null;
     var isHL = hlSet && hlSet.has ? hlSet.has(stock) : false;
 
-    // 筛选模式：独有股票隐藏
-    var isHidden = filterOn && sharedStocks.length > 0 && !inArray(sharedStocks, stock);
+    // 是否独有（共同持仓筛选）
+    var isUnique = !filterActive && filterOn && sharedStocks.length > 0 && !inArray(sharedStocks, stock);
+
+    // 全局联动筛选：不在焦点中的隐藏
+    var isFiltered = filterActive && !filterFocusStocks[stock];
+
+    // 隐藏的：独有 或 被筛选掉
+    var isHidden = isUnique || isFiltered;
     if (isHidden) {
-      uniqueCount++;
-      if (!fund.showAll) continue; // 跳过隐藏的
+      hiddenCount++;
+      if (!fund.showAll) continue;
     }
 
-    // 确定按钮折叠
-    var isFolded = fundFoldedStocks[fund.id] && fundFoldedStocks[fund.id][stock];
-
-    ol.appendChild(renderStockItem(stock, color, isHL, isHidden, isFolded));
+    ol.appendChild(renderStockItem(stock, color, isHL, isUnique, isFiltered));
   }
 
   wrapper.appendChild(ol);
 
-  // 筛选模式：下拉按钮
-  if (filterOn && uniqueCount > 0) {
+  // 下拉按钮（含独有和折叠的）
+  if (hiddenCount > 0) {
     var dropRow = createElement('div', { className: 'dropdown-row' });
     var label = fund.showAll
-      ? '⬆ 收起全部持仓（' + uniqueCount + '只）'
-      : '⬇ 查看全部持仓（' + uniqueCount + '只）';
+      ? '⬆ 收起全部持仓（' + hiddenCount + '只）'
+      : '⬇ 查看全部持仓（' + hiddenCount + '只）';
     var dropBtn = createElement('button', { className: 'btn-dropdown', type: 'button' }, label);
     dropRow.appendChild(dropBtn);
     wrapper.appendChild(dropRow);
@@ -159,14 +168,14 @@ function renderStockBody(fund, colorMap, hlSet, filterOn, sharedStocks) {
   return wrapper;
 }
 
-function renderStockItem(stockName, color, isHighlight, isUnique, isFolded) {
+function renderStockItem(stockName, color, isHighlight, isUnique, isFiltered) {
   var cls = 'stock-item';
   if (isHighlight) cls += ' stock-highlight';
   if (isUnique) cls += ' stock-unique';
-  if (isFolded) cls += ' stock-folded';
+  if (isFiltered) cls += ' stock-folded';
 
   var li = createElement('li', { className: cls });
-  if (isFolded) li.setAttribute('title', '点击展开');
+  if (isFiltered) li.setAttribute('title', '点击展开');
 
   var dot;
   if (color) {
@@ -176,12 +185,20 @@ function renderStockItem(stockName, color, isHighlight, isUnique, isFolded) {
     dot = createElement('span', { className: 'color-dot color-dot-empty' });
   }
   li.appendChild(dot);
-  li.appendChild(document.createTextNode(escapeHtml(stockName)));
 
-  // 复选框（独有且展开的默认不勾选）
+  // 股票名（可双击编辑）
+  var nameSpan = createElement('span', { className: 'stock-name', title: '双击编辑' }, escapeHtml(stockName));
+  nameSpan.setAttribute('data-original', stockName);
+  li.appendChild(nameSpan);
+
+  // 复选框：在焦点中 → 勾选
   var label = createElement('label', { className: 'stock-check-label' });
   var cb = createElement('input', { className: 'stock-check', type: 'checkbox', 'data-stock': stockName });
-  cb.checked = isFolded ? false : !isUnique;
+  if (filterActive) {
+    cb.checked = !!filterFocusStocks[stockName];
+  } else {
+    cb.checked = !isUnique;
+  }
   label.appendChild(cb);
   li.appendChild(label);
 
