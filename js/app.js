@@ -101,6 +101,13 @@ function handleCardClick(e) {
     return;
   }
 
+  // 双击基金名 → 编辑
+  if (e.target.closest('.fund-name') && e.type === 'dblclick') {
+    var fnSpan = e.target.closest('.fund-name');
+    startEditFundName(fnSpan, fundId);
+    return;
+  }
+
   // 双击股票名 → 编辑
   if (e.target.closest('.stock-name') && e.type === 'dblclick') {
     var nameSpan = e.target.closest('.stock-name');
@@ -119,6 +126,40 @@ function handleCardClick(e) {
     }
     return;
   }
+}
+
+// ==========================================
+//  基金名称编辑
+// ==========================================
+
+function startEditFundName(nameSpan, fundId) {
+  var original = nameSpan.getAttribute('data-original') || nameSpan.textContent.trim();
+
+  var input = document.createElement('input');
+  input.type = 'text';
+  input.value = original;
+  input.style.cssText = 'font-size:16px;font-weight:600;padding:2px 8px;border:1px solid #4A90D9;border-radius:4px;width:80%;font-family:inherit;color:#2E5C8A;';
+
+  nameSpan.replaceWith(input);
+  input.focus();
+  input.select();
+
+  var save = function () {
+    var newName = input.value.trim();
+    if (newName && newName !== original) {
+      updateFund(fundId, { name: newName });
+    }
+    renderAll();
+  };
+
+  input.addEventListener('blur', save);
+  input.addEventListener('keydown', function (ev) {
+    if (ev.key === 'Enter') { input.blur(); }
+    if (ev.key === 'Escape') {
+      input.removeEventListener('blur', save);
+      renderAll();
+    }
+  });
 }
 
 // ==========================================

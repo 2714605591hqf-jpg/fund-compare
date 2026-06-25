@@ -110,7 +110,8 @@ function renderCardHeader(fund, hlSet, effectiveCollapsed) {
   var si = $('.search-input');
   if (si) st = si.value.trim().toLowerCase();
   if (st && fund.name.toLowerCase().indexOf(st) !== -1) nameCls += ' highlight-name';
-  var nameSpan = createElement('span', { className: nameCls }, escapeHtml(fund.name));
+  var nameSpan = createElement('span', { className: nameCls, title: '双击编辑' }, escapeHtml(fund.name));
+  nameSpan.setAttribute('data-original', fund.name);
 
   var actions = createElement('div', { className: 'card-actions' });
   var collIcon = effectiveCollapsed ? '▶' : '▼';
