@@ -1,0 +1,225 @@
+/* ==========================================
+   主入口 + 交互逻辑 v2.0
+   ========================================== */
+
+var pendingDeleteId = null;
+
+// 确定按钮折叠：{ fundId: { stockName: true } }
+var fundFoldedStocks = {};
+
+function initApp() {
+  renderAll();
+  bindEvents();
+}
+
+document.addEventListener('DOMContentLoaded', initApp);
+
+// ==========================================
+//  事件绑定
+// ==========================================
+
+function bindEvents() {
+  var si = $('.search-input');
+  if (si) si.addEventListener('input', function () { renderAll(); });
+
+  var fc = $('.filter-checkbox');
+  if (fc) fc.addEventListener('change', function () { renderAll(); });
+
+  var addBtn = $('#btn-add-fund');
+  if (addBtn) addBtn.addEventListener('click', showAddModal);
+
+  var grid = $('.fund-grid');
+  if (grid) grid.addEventListener('click', handleCardClick);
+
+  document.addEventListener('click', handleGlobalClick);
+  document.addEventListener('keydown', function (e) {
+    if (e.key === 'Escape') closeAllModals();
+  });
+}
+
+// ==========================================
+//  卡片点击
+// ==========================================
+
+function handleCardClick(e) {
+  var card = e.target.closest('.fund-card');
+  if (!card) return;
+  var fundId = card.getAttribute('data-id');
+  if (!fundId) return;
+
+  // 折叠（筛选模式下标记手动操作）
+  if (e.target.closest('.btn-collapse')) {
+    var fc = $('.filter-checkbox');
+    if (fc && fc.checked) manualCollapse[fundId] = true;
+    toggleCollapse(fundId);
+    renderAll();
+    return;
+  }
+
+  // 置顶
+  if (e.target.closest('.btn-pin')) {
+    togglePin(fundId);
+    renderAll();
+    return;
+  }
+
+  // 删除
+  if (e.target.closest('.btn-delete')) {
+    var name = card.querySelector('.fund-name').textContent;
+    showDeleteModal(fundId, name);
+    return;
+  }
+
+  // 全选/全不选
+  if (e.target.closest('.btn-text-link')) {
+    var btn = e.target.closest('.btn-text-link');
+    var isAll = btn.textContent.trim() === '全选';
+    var cbs = card.querySelectorAll('.stock-check');
+    for (var i = 0; i < cbs.length; i++) cbs[i].checked = isAll;
+    return;
+  }
+
+  // 确定按钮
+  if (e.target.closest('.btn-confirm')) {
+    handleConfirm(fundId, card);
+    return;
+  }
+
+  // 下拉展开按钮
+  if (e.target.closest('.btn-dropdown')) {
+    toggleShowAll(fundId);
+    renderAll();
+    return;
+  }
+
+  // 点击折叠的股票行 → 展开
+  if (e.target.closest('.stock-item.stock-folded')) {
+    var item = e.target.closest('.stock-item.stock-folded');
+    var cb = item.querySelector('.stock-check');
+    var stockName = cb ? cb.getAttribute('data-stock') : null;
+    if (stockName && fundFoldedStocks[fundId]) {
+      delete fundFoldedStocks[fundId][stockName];
+      if (Object.keys(fundFoldedStocks[fundId]).length === 0) delete fundFoldedStocks[fundId];
+      renderAll();
+    }
+    return;
+  }
+}
+
+// ==========================================
+//  确定按钮
+// ==========================================
+
+function handleConfirm(fundId, card) {
+  var cbs = card.querySelectorAll('.stock-check');
+  var folded = {};
+
+  for (var i = 0; i < cbs.length; i++) {
+    var cb = cbs[i];
+    var sn = cb.getAttribute('data-stock');
+    if (sn && !cb.checked) folded[sn] = true;
+  }
+
+  if (Object.keys(folded).length > 0) {
+    fundFoldedStocks[fundId] = folded;
+  } else {
+    delete fundFoldedStocks[fundId];
+  }
+
+  renderAll();
+}
+
+// ==========================================
+//  添加基金
+// ==========================================
+
+function showAddModal() {
+  clearAddForm();
+  var modal = $('#modal-add');
+  if (!modal) return;
+  modal.style.display = '';
+  var fi = modal.querySelector('.form-input');
+  if (fi) setTimeout(function () { fi.focus(); }, 100);
+}
+
+function handleAddFund() {
+  var modal = $('#modal-add');
+  if (!modal) return;
+  var nameInput = modal.querySelector('.form-group .form-input');
+  var fundName = nameInput ? nameInput.value.trim() : '';
+  if (!fundName) { flashError(nameInput); return; }
+
+  var stockInputs = modal.querySelectorAll('.stock-input');
+  var stocks = [];
+  for (var i = 0; i < stockInputs.length; i++) {
+    var v = stockInputs[i].value.trim();
+    if (v) stocks.push(v);
+  }
+  if (stocks.length === 0) {
+    if (stockInputs[0]) flashError(stockInputs[0]);
+    return;
+  }
+
+  addFund(fundName, stocks);
+  renderAll();
+  closeAllModals();
+}
+
+function clearAddForm() {
+  var modal = $('#modal-add');
+  if (!modal) return;
+  var inputs = modal.querySelectorAll('.form-input');
+  for (var i = 0; i < inputs.length; i++) inputs[i].value = '';
+}
+
+function flashError(input) {
+  input.style.borderColor = 'var(--danger)';
+  input.focus();
+  setTimeout(function () { input.style.borderColor = ''; }, 1500);
+}
+
+// ==========================================
+//  删除基金
+// ==========================================
+
+function showDeleteModal(fundId, fundName) {
+  var modal = $('#modal-delete');
+  if (!modal) return;
+  pendingDeleteId = fundId;
+  var ns = modal.querySelector('.delete-fund-name');
+  if (ns) ns.textContent = fundName;
+  modal.style.display = '';
+}
+
+function handleDeleteConfirm() {
+  if (pendingDeleteId) {
+    deleteFund(pendingDeleteId);
+    pendingDeleteId = null;
+    renderAll();
+  }
+  closeAllModals();
+}
+
+// ==========================================
+//  弹窗控制
+// ==========================================
+
+function handleGlobalClick(e) {
+  if (e.target.classList.contains('modal-overlay')) {
+    e.target.style.display = 'none'; return;
+  }
+  if (e.target.classList.contains('btn-cancel') || e.target.classList.contains('modal-close')) {
+    closeAllModals(); return;
+  }
+  if (e.target.closest('#modal-add .btn-primary')) {
+    handleAddFund(); return;
+  }
+  if (e.target.closest('#modal-delete .btn-danger')) {
+    handleDeleteConfirm(); return;
+  }
+}
+
+function closeAllModals() {
+  var modals = document.querySelectorAll('.modal-overlay');
+  for (var i = 0; i < modals.length; i++) modals[i].style.display = 'none';
+}

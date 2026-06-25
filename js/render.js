@@ -1,0 +1,217 @@
+/* ==========================================
+   渲染引擎 v2.0 — 含筛选系统
+   ========================================== */
+
+// 手动折叠覆盖（筛选模式下用户手动操作过的基金）
+var manualCollapse = {};
+
+function renderAll() {
+  var grid = $('.fund-grid');
+  if (!grid) return;
+  grid.innerHTML = '';
+
+  var funds = getFunds();
+  if (funds.length === 0) {
+    grid.appendChild(renderEmptyState());
+    return;
+  }
+
+  // 搜索
+  var searchTerm = '';
+  var si = $('.search-input');
+  if (si) searchTerm = si.value;
+  var sr = searchFunds(funds, searchTerm);
+  var visible = sr.filtered;
+  var highlights = sr.highlights;
+  if (visible.length === 0) {
+    grid.appendChild(renderSearchEmpty(searchTerm));
+    return;
+  }
+
+  // 筛选开关
+  var filterOn = false;
+  var fc = $('.filter-checkbox');
+  if (fc) filterOn = fc.checked;
+
+  // 清除手动标记（筛选关闭时）
+  if (!filterOn) {
+    manualCollapse = {};
+    fundFoldedStocks = {};
+  }
+
+  // 颜色映射
+  var colorMap = buildColorMap(funds);
+
+  // 筛选模式：计算共同持仓 + 排序
+  var sharedStocks = [];
+  if (filterOn) {
+    sharedStocks = getSharedStocks(visible);
+    // 按共同持仓数量降序，同数量按创建时间
+    visible.sort(function (a, b) {
+      var ac = 0, bc = 0;
+      for (var si2 = 0; si2 < a.stocks.length; si2++) {
+        if (inArray(sharedStocks, a.stocks[si2])) ac++;
+      }
+      for (var sj = 0; sj < b.stocks.length; sj++) {
+        if (inArray(sharedStocks, b.stocks[sj])) bc++;
+      }
+      if (bc !== ac) return bc - ac;
+      return b.createdAt - a.createdAt;
+    });
+  }
+
+  // 渲染
+  for (var i = 0; i < visible.length; i++) {
+    var fund = visible[i];
+    var hlSet = highlights[fund.id] || new Set();
+    grid.appendChild(renderCard(fund, colorMap, hlSet, filterOn, sharedStocks));
+  }
+}
+
+function renderCard(fund, colorMap, hlSet, filterOn, sharedStocks) {
+  var collapsed = fund.collapsed;
+  // 筛选模式：0共同持仓自动折叠（手动操作除外）
+  if (filterOn && !manualCollapse[fund.id]) {
+    var hasShared = false;
+    for (var i = 0; i < fund.stocks.length; i++) {
+      if (inArray(sharedStocks, fund.stocks[i])) { hasShared = true; break; }
+    }
+    if (!hasShared && sharedStocks.length > 0) collapsed = true;
+    else if (hasShared) collapsed = false;
+  }
+
+  var cls = 'fund-card';
+  if (fund.pinned) cls += ' pinned';
+  if (collapsed) cls += ' collapsed';
+
+  var card = createElement('div', { className: cls, 'data-id': fund.id });
+  card.appendChild(renderCardHeader(fund, hlSet, collapsed));
+  card.appendChild(renderStockBody(fund, colorMap, hlSet, filterOn, sharedStocks));
+  card.appendChild(renderCardButtons());
+
+  return card;
+}
+
+function renderCardHeader(fund, hlSet, effectiveCollapsed) {
+  var header = createElement('div', { className: 'card-header' });
+
+  var pinBtn = createElement('button', { className: 'btn-icon btn-pin', title: fund.pinned ? '取消置顶' : '置顶' }, '📌');
+  if (!fund.pinned) pinBtn.style.opacity = '0.35';
+
+  var nameCls = 'fund-name';
+  var st = '';
+  var si = $('.search-input');
+  if (si) st = si.value.trim().toLowerCase();
+  if (st && fund.name.toLowerCase().indexOf(st) !== -1) nameCls += ' highlight-name';
+  var nameSpan = createElement('span', { className: nameCls }, escapeHtml(fund.name));
+
+  var actions = createElement('div', { className: 'card-actions' });
+  var collIcon = effectiveCollapsed ? '▶' : '▼';
+  var collTitle = effectiveCollapsed ? '展开' : '折叠';
+  var collapseBtn = createElement('button', { className: 'btn-icon btn-collapse', title: collTitle }, collIcon);
+  var deleteBtn = createElement('button', { className: 'btn-icon btn-delete', title: '删除' }, '✕');
+  actions.appendChild(collapseBtn);
+  actions.appendChild(deleteBtn);
+
+  header.appendChild(pinBtn);
+  header.appendChild(nameSpan);
+  header.appendChild(actions);
+  return header;
+}
+
+function renderStockBody(fund, colorMap, hlSet, filterOn, sharedStocks) {
+  var wrapper = createElement('div', { className: 'stock-list-wrapper' });
+  var ol = createElement('ol', { className: 'stock-list' });
+
+  var uniqueCount = 0;
+
+  for (var i = 0; i < fund.stocks.length; i++) {
+    var stock = fund.stocks[i];
+    var color = (colorMap && colorMap[stock]) ? colorMap[stock] : null;
+    var isHL = hlSet && hlSet.has ? hlSet.has(stock) : false;
+
+    // 筛选模式：独有股票隐藏
+    var isHidden = filterOn && sharedStocks.length > 0 && !inArray(sharedStocks, stock);
+    if (isHidden) {
+      uniqueCount++;
+      if (!fund.showAll) continue; // 跳过隐藏的
+    }
+
+    // 确定按钮折叠
+    var isFolded = fundFoldedStocks[fund.id] && fundFoldedStocks[fund.id][stock];
+
+    ol.appendChild(renderStockItem(stock, color, isHL, isHidden, isFolded));
+  }
+
+  wrapper.appendChild(ol);
+
+  // 筛选模式：下拉按钮
+  if (filterOn && uniqueCount > 0) {
+    var dropRow = createElement('div', { className: 'dropdown-row' });
+    var label = fund.showAll
+      ? '⬆ 收起全部持仓（' + uniqueCount + '只）'
+      : '⬇ 查看全部持仓（' + uniqueCount + '只）';
+    var dropBtn = createElement('button', { className: 'btn-dropdown', type: 'button' }, label);
+    dropRow.appendChild(dropBtn);
+    wrapper.appendChild(dropRow);
+  }
+
+  return wrapper;
+}
+
+function renderStockItem(stockName, color, isHighlight, isUnique, isFolded) {
+  var cls = 'stock-item';
+  if (isHighlight) cls += ' stock-highlight';
+  if (isUnique) cls += ' stock-unique';
+  if (isFolded) cls += ' stock-folded';
+
+  var li = createElement('li', { className: cls });
+  if (isFolded) li.setAttribute('title', '点击展开');
+
+  var dot;
+  if (color) {
+    dot = createElement('span', { className: 'color-dot' });
+    dot.style.backgroundColor = color;
+  } else {
+    dot = createElement('span', { className: 'color-dot color-dot-empty' });
+  }
+  li.appendChild(dot);
+  li.appendChild(document.createTextNode(escapeHtml(stockName)));
+
+  // 复选框（独有且展开的默认不勾选）
+  var label = createElement('label', { className: 'stock-check-label' });
+  var cb = createElement('input', { className: 'stock-check', type: 'checkbox', 'data-stock': stockName });
+  cb.checked = isFolded ? false : !isUnique;
+  label.appendChild(cb);
+  li.appendChild(label);
+
+  return li;
+}
+
+function renderCardButtons() {
+  var row = createElement('div', { className: 'card-btn-row' });
+  row.appendChild(createElement('button', { className: 'btn-text-link', type: 'button' }, '全选'));
+  row.appendChild(createElement('button', { className: 'btn-text-link', type: 'button' }, '全不选'));
+  row.appendChild(createElement('button', { className: 'btn btn-confirm', type: 'button' }, '确定'));
+  return row;
+}
+
+// ==========================================
+//  空状态
+// ==========================================
+
+function renderEmptyState() {
+  var w = createElement('div', { className: 'empty-state' });
+  w.appendChild(createElement('div', { className: 'empty-icon' }, '📊'));
+  w.appendChild(createElement('h3', { className: 'empty-title' }, '还没有基金数据'));
+  w.appendChild(createElement('p', { className: 'empty-desc' }, '点击上方"+ 添加基金"按钮，开始对比你的基金持仓吧'));
+  return w;
+}
+
+function renderSearchEmpty(term) {
+  var w = createElement('div', { className: 'empty-state' });
+  w.appendChild(createElement('div', { className: 'empty-icon' }, '🔍'));
+  w.appendChild(createElement('h3', { className: 'empty-title' }, '未找到匹配结果'));
+  w.appendChild(createElement('p', { className: 'empty-desc' }, '没有基金或股票包含"' + escapeHtml(term) + '"'));
+  return w;
+}

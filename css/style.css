@@ -1,0 +1,338 @@
+/* ==========================================
+   基金十大重仓对比 — 主样式 v2.0
+   ========================================== */
+
+/* --- CSS 变量 --- */
+:root {
+  --primary: #4A90D9;
+  --primary-light: #E8F4FD;
+  --primary-dark: #2E5C8A;
+  --bg: #F5F8FB;
+  --card: #FFFFFF;
+  --text: #333333;
+  --text-muted: #888888;
+  --border: #D8E4F0;
+  --danger: #E05555;
+  --radius: 8px;
+  --shadow-sm: 0 1px 4px rgba(0,0,0,0.06);
+  --shadow-md: 0 2px 12px rgba(0,0,0,0.10);
+  --font: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "PingFang SC", "Microsoft YaHei", sans-serif;
+  --transition: 300ms ease-in-out;
+}
+
+/* --- 全局重置 --- */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+body {
+  font-family: var(--font);
+  background: var(--bg);
+  color: var(--text);
+  line-height: 1.6;
+  min-height: 100vh;
+}
+
+/* --- 页面头部 --- */
+.app-header {
+  background: var(--primary-dark);
+  padding: 20px 32px;
+  text-align: center;
+}
+.app-title {
+  color: #fff;
+  font-size: 24px;
+  font-weight: 700;
+  letter-spacing: 2px;
+}
+
+/* --- 工具栏 --- */
+.toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 24px;
+  background: var(--card);
+  border-bottom: 1px solid var(--border);
+  gap: 16px;
+  flex-wrap: wrap;
+}
+.toolbar-left {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+.toolbar-right { flex-shrink: 0; }
+
+/* 搜索框 */
+.search-box {
+  display: flex;
+  align-items: center;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 8px 12px;
+  min-width: 240px;
+  transition: border var(--transition);
+}
+.search-box:focus-within {
+  border-color: var(--primary);
+  box-shadow: 0 0 0 3px var(--primary-light);
+}
+.search-icon { font-size: 16px; margin-right: 8px; opacity: 0.5; }
+.search-input {
+  border: none; outline: none; background: transparent;
+  font-size: 14px; flex: 1; color: var(--text);
+  font-family: var(--font);
+}
+.search-input::placeholder { color: var(--text-muted); }
+
+/* 筛选开关 */
+.filter-toggle {
+  display: flex; align-items: center; gap: 8px;
+  cursor: pointer; font-size: 14px; color: var(--text);
+  user-select: none; white-space: nowrap;
+}
+.filter-checkbox { width: 16px; height: 16px; accent-color: var(--primary); cursor: pointer; }
+
+/* --- 按钮 --- */
+.btn {
+  display: inline-flex; align-items: center; justify-content: center;
+  padding: 10px 20px; font-size: 14px; font-weight: 500;
+  font-family: var(--font); border: 1px solid transparent;
+  border-radius: 6px; cursor: pointer;
+  transition: all 150ms ease; white-space: nowrap;
+}
+.btn-primary { background: var(--primary); color: #fff; }
+.btn-primary:hover { background: var(--primary-dark); box-shadow: var(--shadow-sm); }
+.btn-cancel { background: var(--bg); color: var(--text); border-color: var(--border); }
+.btn-cancel:hover { background: var(--border); }
+.btn-danger { background: var(--danger); color: #fff; }
+.btn-danger:hover { background: #C74B4B; }
+
+/* 确认按钮 */
+.btn-confirm {
+  padding: 5px 16px; font-size: 13px;
+  background: var(--primary); color: #fff;
+  border: none; border-radius: 4px;
+  cursor: pointer; font-family: var(--font);
+}
+.btn-confirm:hover { background: var(--primary-dark); }
+
+/* 图标按钮 */
+.btn-icon {
+  background: none; border: none; cursor: pointer;
+  font-size: 16px; padding: 4px 6px; line-height: 1;
+  border-radius: 4px; color: var(--text-muted);
+  transition: all 150ms ease; font-family: var(--font);
+}
+.btn-icon:hover { background: var(--primary-light); color: var(--primary-dark); }
+.btn-delete:hover { background: #FDECEC; color: var(--danger); }
+
+/* 文字链接按钮 */
+.btn-text-link {
+  background: none; border: none; cursor: pointer;
+  font-size: 12px; padding: 4px 8px; border-radius: 3px;
+  color: var(--primary); font-family: var(--font);
+}
+.btn-text-link:hover { background: var(--primary-light); }
+
+/* --- 基金卡片网格 --- */
+.fund-grid {
+  display: grid;
+  grid-template-columns: repeat(6, 1fr);
+  gap: 20px;
+  padding: 24px;
+  align-items: start;
+}
+
+/* --- 基金卡片 --- */
+.fund-card {
+  background: var(--card);
+  border-radius: var(--radius);
+  border: 1px solid var(--border);
+  box-shadow: var(--shadow-sm);
+  overflow: hidden;
+  transition: box-shadow var(--transition);
+}
+.fund-card:hover { box-shadow: var(--shadow-md); }
+.fund-card.pinned {
+  box-shadow: 0 4px 20px rgba(74,144,217,0.18);
+  border-left: 3px solid var(--primary);
+}
+
+/* 卡片顶栏 */
+.card-header {
+  display: flex; align-items: center;
+  padding: 12px 14px;
+  background: var(--primary-light);
+  gap: 8px;
+}
+.fund-name {
+  font-size: 18px; font-weight: 600;
+  color: var(--primary-dark); flex: 1;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.card-actions { display: flex; gap: 2px; flex-shrink: 0; }
+
+/* --- 股票列表 --- */
+.stock-list-wrapper {
+  overflow: hidden;
+  transition: max-height var(--transition), opacity var(--transition);
+  max-height: 1200px; opacity: 1;
+}
+.stock-list {
+  list-style: none;
+  counter-reset: sc;
+  padding: 8px 0;
+}
+
+/* 折叠 */
+.fund-card.collapsed .stock-list-wrapper {
+  max-height: 0; opacity: 0;
+  padding-top: 0; padding-bottom: 0;
+}
+.fund-card.collapsed .card-btn-row { display: none; }
+
+/* 股票条目 */
+.stock-item {
+  display: flex; align-items: center;
+  padding: 8px 18px; font-size: 14px;
+  counter-increment: sc;
+  transition: background 150ms ease;
+}
+.stock-item::before {
+  content: counter(sc);
+  display: inline-block; width: 24px;
+  text-align: center; font-size: 12px;
+  color: var(--text-muted); margin-right: 8px;
+  flex-shrink: 0;
+}
+.stock-item:hover { background: var(--bg); }
+
+/* 颜色标记 */
+.color-dot {
+  display: inline-block; width: 8px; height: 8px;
+  border-radius: 2px; margin-right: 10px; flex-shrink: 0;
+}
+.color-dot-empty {
+  background: transparent !important;
+  border: 1px dashed var(--border);
+}
+
+/* 复选框 */
+.stock-check-label {
+  display: flex; align-items: center;
+  margin-left: auto; flex-shrink: 0; cursor: pointer;
+}
+.stock-check { width: 15px; height: 15px; cursor: pointer; accent-color: var(--primary); }
+
+/* --- 卡片按钮行 --- */
+.card-btn-row {
+  display: flex; justify-content: flex-end;
+  gap: 6px; padding: 6px 18px 8px;
+}
+
+/* --- 下拉按钮 --- */
+.dropdown-row {
+  display: flex; justify-content: center;
+  padding: 0 18px 12px;
+}
+.btn-dropdown {
+  width: 100%; padding: 6px 0;
+  font-size: 13px; font-weight: 500;
+  color: var(--primary-dark); cursor: pointer;
+  background: var(--primary-light); border: 1px dashed var(--primary);
+  border-radius: 4px; font-family: var(--font);
+}
+.btn-dropdown:hover { background: #D6ECFB; }
+
+/* --- 模态框 --- */
+.modal-overlay {
+  position: fixed; inset: 0;
+  background: rgba(0,0,0,0.4);
+  display: flex; align-items: center; justify-content: center;
+  z-index: 1000; backdrop-filter: blur(2px);
+}
+.modal-dialog {
+  background: var(--card); border-radius: var(--radius);
+  box-shadow: 0 8px 40px rgba(0,0,0,0.18);
+  width: 90%; max-width: 520px; max-height: 85vh;
+  display: flex; flex-direction: column;
+  animation: modalIn 250ms ease-out;
+}
+.modal-dialog.modal-sm { max-width: 380px; }
+@keyframes modalIn {
+  from { opacity:0; transform: translateY(-30px) scale(0.96); }
+  to { opacity:1; transform: translateY(0) scale(1); }
+}
+.modal-header {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 20px 24px 12px;
+}
+.modal-title { font-size: 20px; font-weight: 600; color: var(--primary-dark); }
+.modal-close { font-size: 20px; }
+.modal-body { padding: 12px 24px 20px; overflow-y: auto; flex: 1; }
+.modal-footer {
+  display: flex; justify-content: flex-end; gap: 12px;
+  padding: 16px 24px; border-top: 1px solid var(--border);
+}
+
+/* --- 表单 --- */
+.form-group { margin-bottom: 20px; }
+.form-label { display: block; font-size: 14px; font-weight: 600; color: var(--text); margin-bottom: 6px; }
+.required { color: var(--danger); }
+.form-hint { font-size: 12px; color: var(--text-muted); margin-bottom: 10px; }
+.form-input {
+  width: 100%; padding: 10px 12px; font-size: 14px;
+  font-family: var(--font); border: 1px solid var(--border);
+  border-radius: 6px; color: var(--text); background: var(--bg);
+  transition: border var(--transition); outline: none;
+}
+.form-input:focus { border-color: var(--primary); box-shadow: 0 0 0 3px var(--primary-light); }
+.form-input::placeholder { color: var(--text-muted); }
+
+.stock-inputs { display: flex; flex-direction: column; gap: 6px; margin-top: 8px; }
+.stock-input-row { display: flex; align-items: center; gap: 10px; }
+.stock-rank {
+  width: 24px; text-align: center;
+  font-size: 13px; font-weight: 600;
+  color: var(--text-muted); flex-shrink: 0;
+}
+.stock-input-row .stock-input { flex: 1; }
+
+/* --- 删除弹窗 --- */
+.delete-message { font-size: 15px; color: var(--text); margin-bottom: 8px; }
+.delete-warning { font-size: 13px; color: var(--danger); }
+
+/* --- 空状态 --- */
+.empty-state {
+  grid-column: 1 / -1;
+  display: flex; flex-direction: column;
+  align-items: center; justify-content: center;
+  padding: 80px 20px; text-align: center;
+}
+.empty-icon { font-size: 64px; margin-bottom: 20px; opacity: 0.6; }
+.empty-title { font-size: 20px; font-weight: 600; color: var(--primary-dark); margin-bottom: 10px; }
+.empty-desc { font-size: 14px; color: var(--text-muted); max-width: 320px; }
+
+/* --- 筛选：独有股票 --- */
+.stock-item.stock-unique {
+  opacity: 0.6;
+}
+
+/* --- 确定按钮折叠的股票 --- */
+.stock-item.stock-folded {
+  max-height: 28px; overflow: hidden; opacity: 0.55;
+  cursor: pointer; padding-top: 2px; padding-bottom: 2px;
+  background: #F0F4F7;
+  transition: max-height var(--transition), opacity var(--transition), padding var(--transition);
+}
+.stock-item.stock-folded:hover { opacity: 0.8; background: var(--primary-light); }
+.stock-item.stock-folded::before {
+  content: '▶\00a0' counter(sc);
+  font-size: 11px; color: var(--primary); font-weight: 600; width: 28px;
+}
+.stock-item.stock-folded .color-dot { width: 6px; height: 6px; }
+
+/* --- 搜索高亮 --- */
+.stock-item.stock-highlight { background: #FFF3BF; border-radius: 4px; }
+.fund-name.highlight-name { background: #FFF3BF; border-radius: 4px; padding: 2px 6px; }
