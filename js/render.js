@@ -36,7 +36,9 @@ function renderAll() {
   }
 
   // 分类过滤
-  if (activeCategory) {
+  if (activeCategory === '__all__') {
+    visible = visible.filter(function (f) { return !f.category; });
+  } else if (activeCategory) {
     visible = visible.filter(function (f) { return f.category === activeCategory; });
   }
 
@@ -262,12 +264,25 @@ function renderCategoryBar(funds) {
   if (catNames.length === 0) { bar.style.display = 'none'; return; }
   bar.style.display = '';
 
-  // "全部"按钮
+  // "全部"按钮（未分类的基金）
   var allBtn = createElement('button', {
-    className: 'cat-chip' + (activeCategory === '' ? ' cat-chip-active' : '')
+    className: 'cat-chip' + (activeCategory === '__all__' ? ' cat-chip-active' : '')
   }, '全部');
-  allBtn.addEventListener('click', function () { activeCategory = ''; renderAll(); });
+  allBtn.addEventListener('click', function () {
+    activeCategory = '__all__';
+    renderAll();
+  });
   bar.appendChild(allBtn);
+
+  // "不限"按钮（显示所有基金）
+  var anyBtn = createElement('button', {
+    className: 'cat-chip' + (activeCategory === '' ? ' cat-chip-active' : '')
+  }, '不限');
+  anyBtn.addEventListener('click', function () {
+    activeCategory = '';
+    renderAll();
+  });
+  bar.appendChild(anyBtn);
 
   for (var j = 0; j < catNames.length; j++) {
     (function (cat) {
