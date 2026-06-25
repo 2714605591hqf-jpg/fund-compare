@@ -76,6 +76,9 @@ function renderAll() {
     var hlSet = highlights[fund.id] || new Set();
     grid.appendChild(renderCard(fund, colorMap, hlSet, filterOn, sharedStocks));
   }
+
+  // 基金计数
+  renderFundCount(visible.length, funds.length);
 }
 
 function renderCard(fund, colorMap, hlSet, filterOn, sharedStocks) {
@@ -238,6 +241,16 @@ function renderCardButtons() {
   row.appendChild(createElement('button', { className: 'btn-text-link', type: 'button' }, '全不选'));
   row.appendChild(createElement('button', { className: 'btn btn-confirm', type: 'button' }, '确定'));
   return row;
+}
+
+// ==========================================
+//  基金计数
+// ==========================================
+
+function renderFundCount(visible, total) {
+  var fc = $('#fund-count');
+  if (!fc) return;
+  fc.textContent = visible + '/' + total + ' 只';
 }
 
 // ==========================================

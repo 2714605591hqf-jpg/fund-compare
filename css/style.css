@@ -60,7 +60,8 @@ body {
   gap: 16px;
   flex-wrap: wrap;
 }
-.toolbar-right { flex-shrink: 0; }
+.toolbar-right { flex-shrink: 0; display: flex; align-items: center; gap: 12px; }
+.fund-count { font-size: 13px; color: var(--text-muted); white-space: nowrap; }
 
 /* 搜索框 */
 .search-box {
