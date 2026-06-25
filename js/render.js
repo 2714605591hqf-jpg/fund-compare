@@ -37,10 +37,11 @@ function renderAll() {
   // 颜色映射
   var colorMap = buildColorMap(funds);
 
-  // 筛选模式：计算共同持仓 + 排序
+  // 筛选模式：仅对比展开的基金，折叠的不参与
   var sharedStocks = [];
   if (filterOn) {
-    sharedStocks = getSharedStocks(visible);
+    var compareFunds = visible.filter(function (f) { return !f.collapsed; });
+    sharedStocks = getSharedStocks(compareFunds);
     // 按共同持仓数量降序，同数量按创建时间
     visible.sort(function (a, b) {
       var ac = 0, bc = 0;
