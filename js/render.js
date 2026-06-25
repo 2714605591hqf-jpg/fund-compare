@@ -5,12 +5,19 @@
 // 手动折叠覆盖（筛选模式下用户手动操作过的基金）
 var manualCollapse = {};
 
+// 当前选中的分类筛选（空=全部）
+var activeCategory = '';
+
 function renderAll() {
   var grid = $('.fund-grid');
   if (!grid) return;
   grid.innerHTML = '';
 
   var funds = getFunds();
+
+  // 渲染分类筛选条
+  renderCategoryBar(funds);
+
   if (funds.length === 0) {
     grid.appendChild(renderEmptyState());
     return;
@@ -26,6 +33,11 @@ function renderAll() {
   if (visible.length === 0) {
     grid.appendChild(renderSearchEmpty(searchTerm));
     return;
+  }
+
+  // 分类过滤
+  if (activeCategory) {
+    visible = visible.filter(function (f) { return f.category === activeCategory; });
   }
 
   // 筛选开关
@@ -123,6 +135,17 @@ function renderCardHeader(fund, hlSet, effectiveCollapsed) {
 
   header.appendChild(pinBtn);
   header.appendChild(nameSpan);
+
+  // 分类标签
+  var cat = fund.category || '';
+  var catSpan = createElement('span', {
+    className: 'category-tag' + (cat ? '' : ' category-tag-empty'),
+    title: cat ? '双击编辑分类' : '双击添加分类',
+    'data-fund-id': fund.id
+  }, cat || '+');
+  catSpan.setAttribute('data-original', cat);
+  header.appendChild(catSpan);
+
   header.appendChild(actions);
   return header;
 }
@@ -213,6 +236,52 @@ function renderCardButtons() {
   row.appendChild(createElement('button', { className: 'btn-text-link', type: 'button' }, '全不选'));
   row.appendChild(createElement('button', { className: 'btn btn-confirm', type: 'button' }, '确定'));
   return row;
+}
+
+// ==========================================
+//  分类筛选条
+// ==========================================
+
+function renderCategoryBar(funds) {
+  var bar = $('.category-bar');
+  if (!bar) {
+    bar = createElement('div', { className: 'category-bar' });
+    var toolbar = $('.toolbar');
+    if (toolbar) toolbar.insertAdjacentElement('afterend', bar);
+  }
+  bar.innerHTML = '';
+
+  // 收集所有分类
+  var cats = {};
+  for (var i = 0; i < funds.length; i++) {
+    var c = funds[i].category || '';
+    if (c.trim()) cats[c.trim()] = true;
+  }
+
+  var catNames = Object.keys(cats);
+  if (catNames.length === 0) { bar.style.display = 'none'; return; }
+  bar.style.display = '';
+
+  // "全部"按钮
+  var allBtn = createElement('button', {
+    className: 'cat-chip' + (activeCategory === '' ? ' cat-chip-active' : '')
+  }, '全部');
+  allBtn.addEventListener('click', function () { activeCategory = ''; renderAll(); });
+  bar.appendChild(allBtn);
+
+  for (var j = 0; j < catNames.length; j++) {
+    (function (cat) {
+      var active = activeCategory === cat;
+      var chip = createElement('button', {
+        className: 'cat-chip' + (active ? ' cat-chip-active' : '')
+      }, escapeHtml(cat));
+      chip.addEventListener('click', function () {
+        activeCategory = active ? '' : cat;
+        renderAll();
+      });
+      bar.appendChild(chip);
+    })(catNames[j]);
+  }
 }
 
 // ==========================================

@@ -101,6 +101,14 @@ function handleCardClick(e) {
     return;
   }
 
+  // 双击分类标签 → 编辑
+  if (e.target.closest('.category-tag') && e.type === 'dblclick') {
+    var catTag = e.target.closest('.category-tag');
+    var fid = catTag.getAttribute('data-fund-id');
+    if (fid) startEditCategory(catTag, fid);
+    return;
+  }
+
   // 双击基金名 → 编辑
   if (e.target.closest('.fund-name') && e.type === 'dblclick') {
     var fnSpan = e.target.closest('.fund-name');
@@ -149,6 +157,39 @@ function startEditFundName(nameSpan, fundId) {
     if (newName && newName !== original) {
       updateFund(fundId, { name: newName });
     }
+    renderAll();
+  };
+
+  input.addEventListener('blur', save);
+  input.addEventListener('keydown', function (ev) {
+    if (ev.key === 'Enter') { input.blur(); }
+    if (ev.key === 'Escape') {
+      input.removeEventListener('blur', save);
+      renderAll();
+    }
+  });
+}
+
+// ==========================================
+//  分类编辑
+// ==========================================
+
+function startEditCategory(catSpan, fundId) {
+  var original = catSpan.getAttribute('data-original') || '';
+
+  var input = document.createElement('input');
+  input.type = 'text';
+  input.value = original;
+  input.placeholder = '输入分类';
+  input.style.cssText = 'font-size:12px;padding:2px 6px;border:1px solid #4A90D9;border-radius:4px;width:60px;font-family:inherit;';
+
+  catSpan.replaceWith(input);
+  input.focus();
+  input.select();
+
+  var save = function () {
+    var newCat = input.value.trim();
+    updateFund(fundId, { category: newCat });
     renderAll();
   };
 

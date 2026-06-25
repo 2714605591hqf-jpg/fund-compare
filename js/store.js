@@ -11,6 +11,7 @@ var DEMO_FUNDS = [
     id: 'demo_1',
     name: '易方达蓝筹精选',
     stocks: ['贵州茅台','五粮液','泸州老窖','腾讯控股','招商银行','美的集团','中国平安','伊利股份','格力电器','恒瑞医药'],
+    category: '混合型',
     pinned: true, collapsed: false, showAll: false,
     createdAt: Date.now() - 2000
   },
@@ -18,6 +19,7 @@ var DEMO_FUNDS = [
     id: 'demo_2',
     name: '中欧医疗健康',
     stocks: ['恒瑞医药','迈瑞医疗','药明康德','爱尔眼科','长春高新','片仔癀','云南白药','华兰生物','康泰生物','智飞生物'],
+    category: '医药',
     pinned: false, collapsed: false, showAll: false,
     createdAt: Date.now() - 1000
   },
@@ -25,6 +27,7 @@ var DEMO_FUNDS = [
     id: 'demo_3',
     name: '兴全趋势投资',
     stocks: ['贵州茅台','招商银行','中国平安','美的集团','万华化学','东方雨虹','隆基绿能','恩捷股份','宁德时代','保利发展'],
+    category: '混合型',
     pinned: false, collapsed: true, showAll: false,
     createdAt: Date.now()
   }
@@ -51,6 +54,7 @@ function addFund(name, stocks) {
     id: generateId(),
     name: name.trim(),
     stocks: filterEmpty(stocks).slice(0, 10),
+    category: '',
     pinned: false, collapsed: false, showAll: false,
     createdAt: Date.now()
   };
