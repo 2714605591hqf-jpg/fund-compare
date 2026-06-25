@@ -133,7 +133,7 @@ function startEditStockName(nameSpan, fundId, card) {
   input.type = 'text';
   input.className = 'stock-edit-input';
   input.value = original;
-  input.style.cssText = 'font-size:14px;padding:2px 6px;border:1px solid var(--primary);border-radius:4px;width:80%;font-family:inherit;';
+  input.style.cssText = 'font-size:14px;padding:2px 6px;border:1px solid #4A90D9;border-radius:4px;width:80%;font-family:inherit;';
 
   nameSpan.replaceWith(input);
   input.focus();
