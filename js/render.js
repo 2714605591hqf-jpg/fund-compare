@@ -52,10 +52,10 @@ function renderAll() {
   var colorMap = buildColorMap(funds);
 
   // 筛选模式：仅对比展开的基金，折叠的不参与
+  var selIds = Object.keys(selectedFunds);
   var sharedStocks = [];
   if (filterOn) {
     // 优先用选中的基金，否则用全部展开的
-    var selIds = Object.keys(selectedFunds);
     var compareFunds;
     if (selIds.length >= 2) {
       compareFunds = visible.filter(function (f) { return selectedFunds[f.id]; });
@@ -91,8 +91,13 @@ function renderAll() {
 function renderCard(fund, colorMap, hlSet, filterOn, sharedStocks) {
   var collapsed = fund.collapsed;
 
+  // 已选中基金参与对比时，未选中的折叠隐藏
+  if (filterOn && selIds.length >= 2 && !selectedFunds[fund.id] && !manualCollapse[fund.id]) {
+    collapsed = true;
+  }
+
   // 全局联动筛选：0焦点股票 → 折叠
-  if (filterActive && !manualCollapse[fund.id]) {
+  if (!collapsed && filterActive && !manualCollapse[fund.id]) {
     var hasFocus = false;
     for (var fi = 0; fi < fund.stocks.length; fi++) {
       if (filterFocusStocks[fund.stocks[fi]]) { hasFocus = true; break; }
@@ -102,7 +107,7 @@ function renderCard(fund, colorMap, hlSet, filterOn, sharedStocks) {
   }
 
   // 共同持仓筛选：0共同持仓 → 折叠（全局筛选未生效时）
-  if (!filterActive && filterOn && !manualCollapse[fund.id]) {
+  if (!collapsed && !filterActive && filterOn && !manualCollapse[fund.id]) {
     var hasShared = false;
     for (var i = 0; i < fund.stocks.length; i++) {
       if (inArray(sharedStocks, fund.stocks[i])) { hasShared = true; break; }
