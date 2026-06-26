@@ -8,6 +8,9 @@ var pendingDeleteId = null;
 var filterFocusStocks = {};  // { stockName: true }
 var filterActive = false;
 
+// 基金选择：用于共同持仓对比
+var selectedFunds = {};
+
 function initApp() {
   renderAll();
   bindEvents();
@@ -26,6 +29,7 @@ function bindEvents() {
   var fc = $('.filter-checkbox');
   if (fc) fc.addEventListener('change', function () {
     manualCollapse = {};
+    selectedFunds = {};
     filterFocusStocks = {};
     filterActive = false;
     renderAll();
@@ -55,6 +59,17 @@ function handleCardClick(e) {
   if (!card) return;
   var fundId = card.getAttribute('data-id');
   if (!fundId) return;
+
+  // 选择框
+  if (e.target.closest('.fund-select')) {
+    var cb = e.target.closest('.fund-select').querySelector('input');
+    if (cb) {
+      if (cb.checked) selectedFunds[fundId] = true;
+      else delete selectedFunds[fundId];
+    }
+    renderAll();
+    return;
+  }
 
   // 折叠（筛选模式下标记手动操作）
   if (e.target.closest('.btn-collapse')) {

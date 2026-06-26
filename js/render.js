@@ -54,7 +54,14 @@ function renderAll() {
   // 筛选模式：仅对比展开的基金，折叠的不参与
   var sharedStocks = [];
   if (filterOn) {
-    var compareFunds = visible.filter(function (f) { return !f.collapsed; });
+    // 优先用选中的基金，否则用全部展开的
+    var selIds = Object.keys(selectedFunds);
+    var compareFunds;
+    if (selIds.length >= 2) {
+      compareFunds = visible.filter(function (f) { return selectedFunds[f.id]; });
+    } else {
+      compareFunds = visible.filter(function (f) { return !f.collapsed; });
+    }
     sharedStocks = getSharedStocks(compareFunds);
     // 按共同持仓数量降序，同数量按创建时间
     visible.sort(function (a, b) {
@@ -139,6 +146,14 @@ function renderCardHeader(fund, hlSet, effectiveCollapsed) {
   actions.appendChild(deleteBtn);
 
   header.appendChild(pinBtn);
+
+  // 选择框
+  var selLabel = createElement('label', { className: 'fund-select' });
+  var selCb = createElement('input', { type: 'checkbox' });
+  selCb.checked = !!selectedFunds[fund.id];
+  selLabel.appendChild(selCb);
+  header.appendChild(selLabel);
+
   header.appendChild(nameSpan);
 
   // 分类标签
