@@ -29,7 +29,6 @@ function bindEvents() {
   var fc = $('.filter-checkbox');
   if (fc) fc.addEventListener('change', function () {
     manualCollapse = {};
-    selectedFunds = {};
     filterFocusStocks = {};
     filterActive = false;
     renderAll();
