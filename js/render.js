@@ -91,9 +91,13 @@ function renderAll() {
 function renderCard(fund, colorMap, hlSet, filterOn, sharedStocks) {
   var collapsed = fund.collapsed;
 
-  // 已选中基金参与对比时，未选中的折叠隐藏
-  if (filterOn && selIds.length >= 2 && !selectedFunds[fund.id] && !manualCollapse[fund.id]) {
-    collapsed = true;
+  // 已选中基金参与对比
+  if (filterOn && selIds.length >= 2) {
+    if (selectedFunds[fund.id]) {
+      collapsed = false;  // 选中的强制展开
+    } else if (!manualCollapse[fund.id]) {
+      collapsed = true;   // 未选中的折叠隐藏
+    }
   }
 
   // 全局联动筛选：0焦点股票 → 折叠
